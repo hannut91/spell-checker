@@ -7,6 +7,8 @@ import (
 	"net/url"
 )
 
+const MAX_LENGTH = 500
+
 type SpellResult struct {
 	Text string `json:"notag_html"`
 }
@@ -19,40 +21,24 @@ type SpellResponse struct {
 	Message SpellMessage `json:"message"`
 }
 
-// Add returns sum of two numbers.
-func Add(a int, b int) int {
-	return a + b
-}
-
-// CheckFile return fixed text.
-func CheckFile(filename string) (fixed string, err error) {
-	body, err := ioutil.ReadFile(filename)
-
-	if err != nil {
-		return
-	}
-
-	fixed, err = Check(string(body))
-
-	return
-}
-
 // Check returns fixed text.
 func Check(text string) (fixed string, err error) {
-	body, err := fetchURL(getSpellURL(text))
+	if len(text) >= MAX_LENGTH {
+		text = text[:MAX_LENGTH]
+	}
 
+	body, err := fetchURL(getSpellURL(text))
 	if err != nil {
 		return
 	}
 
-	response, err := parseSpellResponse(body)
-
+	var response SpellResponse
+	err = json.Unmarshal(body, &response)
 	if err != nil {
 		return
 	}
 
 	fixed = response.Message.Result.Text
-
 	return
 }
 
@@ -65,12 +51,6 @@ func fetchURL(url string) (body []byte, err error) {
 	defer resp.Body.Close()
 
 	body, err = ioutil.ReadAll(resp.Body)
-	return
-}
-
-func parseSpellResponse(body []byte) (response SpellResponse, err error) {
-	err = json.Unmarshal(body, &response)
-
 	return
 }
 
